@@ -8,6 +8,7 @@ class TempDevice
     var address
     var offset
     var value
+    var lastMeasureAt
 
     var hasError
     var name
@@ -23,13 +24,20 @@ class TempDevice
     end
 
     def isFake()
-        return  self.address[0]!=0x28 || self.address[5] !=0 || self.address[6]!=0 
+        if self.address == nil || size(self.address) < 8
+            return true
+        end
+
+        # Treat known Dallas/Maxim 1-Wire families as valid.
+        var family = self.address[0]
+        return family != 0x28 && family != 0x10 && family != 0x22 && family != 0x3B
     end
 
     def init()
         self.hasError=false
         self.name="??"
         self.offset=0
+        self.lastMeasureAt = nil
         self.hasError = true
         self.stateReported = false
         self.isPreDefined = false
@@ -41,6 +49,7 @@ end
 class DallasTempBase
 
     static IGNORE_AFTER_ERROR = 2
+    static webViewLastRenderedAt = -2000
 
     static DSROM_FAMILY =0
     static DSROM_CRC = 7
@@ -103,6 +112,11 @@ class DallasTempBase
     -#
     var onCollectingDone
 
+     #- callback every second while enabled
+         def (obj)
+     -#
+     var onEverySecond
+
     #- called after sonsor state has changed (e.g. CRC error)
       def (DallasTemp,TempDevice)
     -#
@@ -113,7 +127,7 @@ class DallasTempBase
     para              (webserver)
     return            html content
     -#  
-    var onBuildWebView 
+    var onBuildWebView
 
     #-
     callback          callback if value is updated
@@ -185,7 +199,7 @@ class DallasTempBase
     def newDevice(idBytes)
         var device = TempDevice()
         device.address = idBytes
-        device.name = "device-"+str(size(self.devices))
+        device.name = "Device-" + str(self.gpio) + "-" + str(size(self.devices))
         device.offset=0
         self.devices.push(device)
         return device
@@ -202,7 +216,7 @@ class DallasTempBase
         while i < size(devices)
             var device = devices[i]
             if !device.isPreDefined
-                self.info (cproc," remove ",device.name)
+                self.info(cproc," remove ",device.name)
                 devices.remove(i)
             else
                 i += 1

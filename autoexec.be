@@ -50,6 +50,12 @@ xload("configure01.be")
 # loader user's input and adjustings 
 xload(appName+"01.be",true)
 
+# load mapping maintained with the Home Assistant configuration
+xload("ha_mapping.be")
+
+# load helper functions after their configuration globals exist
+xload("mqtt.be")
+
 # shortcut for test device
 hostname=tasmota.cmd("status 5")['StatusNET']['Hostname']
  

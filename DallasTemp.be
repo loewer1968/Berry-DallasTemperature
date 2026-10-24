@@ -274,6 +274,7 @@ class DallasTemp : DallasTempBase
     def collect()
         var cproc="collect"
         var lastPowerSupply=nil
+        var collectLocalTime=nil
 
         if self.reqWaiter <= 0
 
@@ -304,16 +305,28 @@ class DallasTemp : DallasTempBase
                         lastPowerSupply= self.readPowerSupply(device)
    
                         if self.infoEnable
-                            self.info (cproc,"read power-supply result:"+string.format("%02X ",lastPowerSupply) + strDevice)
+                            self.info(cproc,"read power-supply result:"+string.format("%02X ",lastPowerSupply) + strDevice)
                         end
 
-                        if lastPowerSupply != 0xff
-                            self.setErrorAll()
-                            self.warn(cproc,"ignore value due bad read power-supply "+strDevice)
-                            break
+                        # 0x00 = parasite powered, 0xFF = externally powered.
+                        # Both are valid and must not block temperature calculation.
+                        if lastPowerSupply != 0xff && lastPowerSupply != 0x00
+                            self.warn(cproc,"unexpected read power-supply value:"+string.format("%02X ",lastPowerSupply)+strDevice)
                         end
 
                         self.calculateTemperature(device)  
+
+                        if collectLocalTime == nil
+                            try
+                                var timInfo = tasmota.cmd("status 7")
+                                collectLocalTime = timInfo['StatusTIM']['Local']
+                            except ..
+                            end
+                        end
+
+                        if collectLocalTime != nil
+                            device.lastMeasureAt = collectLocalTime
+                        end
 
                     elif readResult == 0 # no device on bus
                         self.warn(cproc,"no devices on bus")
@@ -358,6 +371,14 @@ class DallasTemp : DallasTempBase
         if self.enabled
             self.scan()
             self.collect()
+
+            if self.onEverySecond
+                try
+                    self.onEverySecond(self)
+                except .. as exname, exmsg
+                    self.warn("every_second", exname + " - " + exmsg)
+                end
+            end
         end
     end
     
@@ -377,8 +398,26 @@ class DallasTemp : DallasTempBase
             self.clear()
         end
 
+        paraName=self.webArgPrefix + "_enable"
+        if webserver.has_arg(paraName)
+            self.enabled = true
+            self.info(cproc,"got command:"+paraName)
+        end
+
+        paraName=self.webArgPrefix + "_disable"
+        if webserver.has_arg(paraName)
+            self.enabled = false
+            self.info(cproc,"got command:"+paraName)
+        end
+
         # update web-view for this instance
         if self.onBuildWebView != nil
+            var renderTime = tasmota.millis()
+            if renderTime - DallasTempBase.webViewLastRenderedAt < 2000
+                return
+            end
+            DallasTempBase.webViewLastRenderedAt = renderTime
+
             try
                 var html=xtool.BerryStyle
                 html += self.onBuildWebView()

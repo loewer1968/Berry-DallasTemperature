@@ -9,12 +9,12 @@
 :: last update: 05.09.24
 ::
 
-@echo off
+::@echo off
 set curdir=%cd%
 
 :: 7zip parameters
 :: u update files to archive
-:: -m0=Copy   set compression method
+:: -mm=Copy   set compression method
 :: -w working directory
 :: -tzip create a zip file
 
@@ -22,7 +22,7 @@ set curdir=%cd%
 set copyRoot=..\..\Coding
 set root=.
 set appName=DallasTemp
-set host=tasmota-ke1-klappe-5312
+set host=192.168.168.173
 
 :: copy from master repo
 if exist "%copyRoot%" (
@@ -42,6 +42,12 @@ copy /y %copyRoot%\AppDallasTemp\testDallasTemp.be
 copy /y %copyRoot%\AppDallasTemp\Readme*.md .
 copy /y %copyRoot%\AppDallasTemp\images\* .\images
 )
+
+if not exist "..\HomeAssistant\dallasberry_mapping.be" (
+  echo ERROR: HomeAssistant\dallasberry_mapping.be is required
+  exit /b 1
+)
+copy /y "..\HomeAssistant\dallasberry_mapping.be" .\ha_mapping.be
 
 :: create git hash
 git rev-parse --short HEAD>tmp.txt
@@ -68,12 +74,13 @@ set tool="C:\Program Files\7-Zip\7z.exe"
 set target=%curdir%\%appName%.tapp
 
 set commonFiles=A01DynClass.be xtool.be git.be DallasTempBase.be DallasTemp.be ThingSpeak.be
-set appFiles=autoexec.be configure01.be configure02.be DallasTemp01.be DallasTemp02.be
+set appFiles=autoexec.be configure01.be configure02.be mqtt.be ha_mapping.be DallasTemp01.be DallasTemp02.be
 
 IF EXIST %target%  del %target%
 
 ::  create TAPP file
-%tool% a %target% -m0=Copy -tzip %commonFiles% %appFiles%
+%tool% a %target% -mm=Copy -tzip %commonFiles% %appFiles%
+del ha_mapping.be
 
 
 :: parse the parameters -u, -r and  -a
@@ -104,6 +111,7 @@ echo doUpload : %doUpload%   doRestart : %doRestart%  doArtifact : %doArtifact%
 
 :: create artifact
 if %doArtifact%==1 (
+  if not exist .\artifact mkdir .\artifact
   copy /y %appName%.tapp .\artifact\%appName%_%gitDate%_%gitHash%.tapp
 )
 
