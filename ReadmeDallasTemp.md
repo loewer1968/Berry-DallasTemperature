@@ -43,17 +43,13 @@ After that the "After start of application" scene should be visible.
 Configure the MQTT root, debug logging, value precision, and heartbeat in `configure01.be`:
 
 ```berry
-mqttTopicRoot = "saar159"
+mqttTopicRoot = "saar159/sensors"
 mqttDebugEnabled = true
 mqttRoundDigits = 1
 mqttForcePublishIntervalSec = 600
 ```
 
-Each sensor is published independently to:
-
-```text
-saar159/<tasmota-name>/<device-id>
-```
+Each sensor is published independently to `saar159/sensors/<device_id>`. The device ID is resolved from the 1-Wire ROM mapping; the Tasmota hostname is included in the payload but is not part of the topic.
 
 The payload includes `device_id`, `device_name`, `sensor_id` (the 1-Wire ROM), `pin`, `value`, `offset`, `timestamp`, and `last_measurement`. The value is rounded to `mqttRoundDigits` decimal places. A message is sent when the rounded value changes, or after `mqttForcePublishIntervalSec` seconds even if it has not changed. Messages are retained so a new subscriber receives the last value.
 
@@ -74,9 +70,7 @@ oneWireDeviceMap = {
 
 ### Home Assistant
 
-The 23 heating entities are configured in `../HomeAssistant/kellersensoren.yaml`. Each entity subscribes to `saar159/<tasmota-name>/<device-name>` and reads `value_json.value`; the JSON attributes include the device ID/name, ROM, GPIO, and measurement timestamps. Preserve the entity `unique_id` values when changing display names to avoid creating duplicate entities in Home Assistant.
-
-The DallasBerry topics use the Tasmota hostname, for example `ESPTest01`. Replace that segment in the HA YAML if the device hostname changes.
+The 23 heating entities are configured in `../HomeAssistant/kellersensoren.yaml`. Each entity subscribes to `saar159/sensors/<device_name>` and reads `value_json.value`; the JSON attributes include the device ID/name, ROM, GPIO, and measurement timestamps. Preserve the entity `unique_id` values when changing display names to avoid creating duplicate entities in Home Assistant.
 
 ### Live test
 

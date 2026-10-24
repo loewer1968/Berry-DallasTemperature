@@ -25,7 +25,7 @@ Find more [information](ReadmeThingSpeak.md)
 
 ## DallasBerry MQTT and Home Assistant
 
-The active configuration publishes each sensor independently below `saar159/<tasmota-name>/<device-id>`. The ROM mapping, device IDs, and display names are maintained in the sibling workspace file `../HomeAssistant/dallasberry_mapping.be`. Home Assistant entities and topics are defined in `../HomeAssistant/kellersensoren.yaml`.
+Each sensor is published independently below `saar159/sensors/<device-id>`. The ROM mapping, device IDs, and display names are maintained in the sibling workspace file `../HomeAssistant/dallasberry_mapping.be`. Home Assistant entities and topics are defined in `../HomeAssistant/kellersensoren.yaml`.
 
 MQTT defaults are configured in `configure01.be`: one decimal place and a forced update every 600 seconds. Messages are retained.
 

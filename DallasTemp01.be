@@ -8,4 +8,4 @@ gpioForOneWire = 5
 oneWirePins = [4, 5]
 
 # MQTT root and debug mode are configured in configure01.be.
-mqttTopicRoot = "saar159"
+mqttTopicRoot = "saar159/sensors"

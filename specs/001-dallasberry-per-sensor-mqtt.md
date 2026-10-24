@@ -18,6 +18,7 @@ The previous MQTT format sent all sensors for a GPIO in one array payload. The t
 - Publish changed rounded values promptly and unchanged values at the heartbeat interval.
 - Let new MQTT subscribers and Home Assistant receive each sensor's latest value.
 - Preserve existing Home Assistant entity IDs.
+- Keep topics independent of the Tasmota hostname.
 
 ## 3. Non-Goals
 
@@ -32,7 +33,7 @@ The previous MQTT format sent all sensors for a GPIO in one array payload. The t
 | Setting | Current default | Meaning |
 | --- | --- | --- |
 | `oneWirePins` | `[4, 5]` | GPIOs scanned for OneWire devices; at most eight. |
-| `mqttTopicRoot` | `saar159` | Root topic; leading/trailing `/` are normalized away. |
+| `mqttTopicRoot` | `saar159/sensors` | Root topic; leading/trailing `/` are normalized away. |
 | `mqttRoundDigits` | `1` | Decimal places used for comparison and published values; accepted range 0..6. |
 | `mqttForcePublishIntervalSec` | `600` | Maximum interval between successful updates while the device is running. |
 | `mqttDebugEnabled` | `true` in this workspace | Enables MQTT debug output. |
@@ -45,10 +46,10 @@ The build expects `HomeAssistant/dallasberry_mapping.be` beside the DallasBerry 
 ### 5.1 Topic
 
 ```text
-<mqttTopicRoot>/<tasmota-name>/<device_id>
+<mqttTopicRoot>/<device_id>
 ```
 
-Example: `saar159/ESPTest01/HZ-P-Unten_H01`. Topics are case-sensitive and have no leading slash.
+Example: `saar159/sensors/HZ-P-Unten_H01`. The topic is case-sensitive, has no leading slash, and does not contain the Tasmota hostname. The hostname remains in the payload for diagnostics.
 
 ### 5.2 Payload
 
@@ -83,19 +84,20 @@ Each topic carries one JSON object, not a `sensors[]` array:
 
 ## 6. Home Assistant
 
-`HomeAssistant/kellersensoren.yaml` defines 23 heating sensors using `saar159/<tasmota-name>/<device_name>`. Each entity reads `value_json.value` and exposes device ID/name, ROM, GPIO, message timestamp, and measurement time as attributes. Existing `unique_id` values are preserved. Two LWP entities remain in the file. Update the hostname segment if the Tasmota hostname changes.
+`HomeAssistant/kellersensoren.yaml` defines 23 heating sensors using `saar159/sensors/<device_name>`. Each entity reads `value_json.value` and exposes device ID/name, ROM, GPIO, message timestamp, and measurement time as attributes. Existing `unique_id` values are preserved. Two LWP entities remain in the file. The HA topic does not need to change when the Tasmota hostname changes.
 
 ## 7. Acceptance Criteria
 
-1. Each valid mapped sensor publishes only to its own `saar159/<hostname>/<device_id>` topic.
+1. Each valid mapped sensor publishes only to `saar159/sensors/<device_id>`.
 2. Payloads contain the mapped ID/name, ROM, GPIO, scalar value, and timestamps.
-3. Values are rounded before change detection and before publication.
-4. A changed rounded value publishes on the next successful collection.
-5. An unchanged valid sensor publishes again no later than the configured heartbeat interval, subject to the collection cycle and running Berry VM.
-6. Failed publishes do not update cached value or publish time.
-7. A fresh subscriber receives retained state for sensors that have published successfully.
-8. The 23 ROMs, DallasBerry mappings, and HA topic/entity definitions agree.
-9. An invalid sensor does not block other sensors from publishing.
+3. The Tasmota hostname is present in the payload but not the topic.
+4. Values are rounded before change detection and before publication.
+5. A changed rounded value publishes on the next successful collection.
+6. An unchanged valid sensor publishes again no later than the configured heartbeat interval, subject to the collection cycle and running Berry VM.
+7. Failed publishes do not update cached value or publish time.
+8. A fresh subscriber receives retained state for sensors that have published successfully.
+9. The 23 ROMs, DallasBerry mappings, and HA topic/entity definitions agree.
+10. An invalid sensor does not block other sensors from publishing.
 
 ## 8. Verification Status
 

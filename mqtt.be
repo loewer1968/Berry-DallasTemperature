@@ -114,7 +114,7 @@ def publishMqttForDevice(dt, device, roundedValue)
     end
   end
 
-  var topic = mqttTopicRoot + "/" + tasmotaName + "/" + deviceId
+  var topic = mqttTopicRoot + "/" + deviceId
 
   var payload = DynClass()
   payload.tasmota_name = tasmotaName
